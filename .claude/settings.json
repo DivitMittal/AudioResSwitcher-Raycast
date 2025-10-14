@@ -1,0 +1,10 @@
+{
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [ "serena" ],
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(swift:*)"
+    ]
+  }
+}
