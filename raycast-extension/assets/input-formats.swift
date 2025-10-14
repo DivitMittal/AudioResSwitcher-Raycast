@@ -112,9 +112,6 @@ class InputFormatsCommand {
           "bitDepth": Int(format.mBitsPerChannel),
           "channels": Int(format.mChannelsPerFrame),
           "isCurrent": isCurrent,
-          "formatFlags": Int(format.mFormatFlags),
-          "action":
-            "set \(Int(format.mSampleRate)) \(format.mBitsPerChannel) \(format.mChannelsPerFrame)",
         ])
       }
     }
@@ -189,26 +186,6 @@ class InputFormatsCommand {
     }
 
     return name as String
-  }
-
-  private func getCurrentSampleRate(deviceID: AudioDeviceID) -> Double? {
-    var propertyAddress = AudioObjectPropertyAddress(
-      mSelector: kAudioDevicePropertyNominalSampleRate,
-      mScope: kAudioObjectPropertyScopeGlobal,
-      mElement: kAudioObjectPropertyElementMain
-    )
-
-    var sampleRate: Double = 0
-    var propertySize = UInt32(MemoryLayout<Double>.size)
-
-    guard
-      AudioObjectGetPropertyData(deviceID, &propertyAddress, 0, nil, &propertySize, &sampleRate)
-        == noErr
-    else {
-      return nil
-    }
-
-    return sampleRate
   }
 
   private func getCurrentStreamFormat(deviceID: AudioDeviceID, isInput: Bool)

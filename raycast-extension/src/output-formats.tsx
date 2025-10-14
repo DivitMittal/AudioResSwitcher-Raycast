@@ -75,11 +75,8 @@ export default function Command() {
         environment.assetsPath,
         "output-formats.swift",
       );
-      console.log(
-        `Executing: swift ${scriptPath} set ${item.sampleRate} ${item.bitDepth} ${item.channels}`,
-      );
 
-      const { stdout, stderr } = await execa("swift", [
+      const { stdout } = await execa("swift", [
         scriptPath,
         "set",
         item.sampleRate.toString(),
@@ -87,21 +84,7 @@ export default function Command() {
         item.channels.toString(),
       ]);
 
-      console.log("Swift stdout:", stdout);
-      console.log("Swift stderr:", stderr);
-
-      if (stderr) {
-        throw new Error(`Swift execution error: ${stderr}`);
-      }
-
-      let result;
-      try {
-        result = JSON.parse(stdout);
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        console.error("Raw stdout:", stdout);
-        throw new Error(`Failed to parse Swift response: ${stdout}`);
-      }
+      const result = JSON.parse(stdout);
 
       if (result.error) {
         throw new Error(result.error);
