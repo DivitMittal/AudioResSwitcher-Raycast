@@ -2,10 +2,27 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "audio-res-switcher",
   "title": "Audio Resolution Switcher",
-  "description": "Inspect and switch between audio formats on input/output devices with lossless quality control",
+  "description": "Control audio quality with precision. Switch sample rates, bit depth, and formats for input/output devices. Monitor current bitrate in menubar. Perfect for audiophiles and audio professionals.",
   "icon": "command-icon.png",
   "author": "divm",
   "license": "MIT",
+  "categories": [
+    "System",
+    "Productivity"
+  ],
+  "keywords": [
+    "audio",
+    "sound",
+    "bitrate",
+    "sample rate",
+    "bit depth",
+    "lossless",
+    "hi-res",
+    "coreaudio",
+    "input",
+    "output",
+    "menubar"
+  ],
   "platforms": [
     "macOS"
   ],
@@ -14,18 +31,54 @@
       "name": "input-formats",
       "title": "Input Device Formats",
       "description": "Show supported audio formats for current input device",
+      "keywords": [
+        "audio",
+        "input",
+        "mic",
+        "microphone",
+        "format",
+        "sample rate",
+        "bitrate",
+        "quality",
+        "hz",
+        "khz"
+      ],
       "mode": "view"
     },
     {
       "name": "output-formats",
       "title": "Output Device Formats",
       "description": "Show supported audio formats for current output device",
+      "keywords": [
+        "audio",
+        "output",
+        "speaker",
+        "headphones",
+        "format",
+        "sample rate",
+        "bitrate",
+        "quality",
+        "hz",
+        "khz"
+      ],
       "mode": "view"
     },
     {
       "name": "audio-bitrate-menubar",
       "title": "Audio Bitrate Monitor",
       "description": "Display current audio bitrate for input and output devices in the menubar",
+      "keywords": [
+        "audio",
+        "bitrate",
+        "monitor",
+        "menubar",
+        "status",
+        "quality",
+        "format",
+        "hz",
+        "khz",
+        "bit depth"
+      ],
       "mode": "menu-bar",
       "interval": "5s"
     }
@@ -47,6 +100,7 @@
     "build": "ray build",
     "dev": "ray develop",
     "fix-lint": "ray lint --fix",
-    "lint": "ray lint"
+    "lint": "ray lint",
+    "publish": "npx @raycast/api@latest publish"
   }
 }
