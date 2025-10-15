@@ -1,29 +1,6 @@
-import { MenuBarExtra, Icon, open, environment } from "@raycast/api";
+import { MenuBarExtra, Icon, open } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
-import { execa } from "execa";
-import path from "path";
-
-interface AudioBitrateData {
-  outputSampleRate?: number;
-  outputBitDepth?: number;
-  outputChannels?: number;
-  outputDevice?: string;
-  inputSampleRate?: number;
-  inputBitDepth?: number;
-  inputChannels?: number;
-  inputDevice?: string;
-}
-
-async function getAudioBitrate(): Promise<AudioBitrateData> {
-  try {
-    const scriptPath = path.join(environment.assetsPath, "audio-bitrate.swift");
-    const { stdout } = await execa("swift", [scriptPath]);
-    return JSON.parse(stdout);
-  } catch (error) {
-    console.error("Error getting audio bitrate:", error);
-    return {};
-  }
-}
+import { getAudioBitrate } from "swift:../swift";
 
 function formatBitrate(sampleRate?: number, bitDepth?: number): string {
   if (!sampleRate || !bitDepth) {

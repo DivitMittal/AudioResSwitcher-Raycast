@@ -7,41 +7,18 @@ import {
   showToast,
   Toast,
 } from "@raycast/api";
-import { execa } from "execa";
-import { environment } from "@raycast/api";
-import path from "path";
-
-interface ListItem {
-  title: string;
-  subtitle: string;
-  icon: string;
-  type: string;
-  sampleRate?: number;
-  bitDepth?: number;
-  channels?: number;
-  isCurrent?: boolean;
-  action?: string;
-}
+import { getOutputFormats, setOutputFormat } from "swift:../swift";
+import type { FormatItem } from "./types";
 
 export default function Command() {
-  const [items, setItems] = useState<ListItem[]>([]);
+  const [items, setItems] = useState<FormatItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadFormats = async () => {
     try {
       setIsLoading(true);
-      const scriptPath = path.join(
-        environment.assetsPath,
-        "output-formats.swift",
-      );
-      const { stdout } = await execa("swift", [scriptPath]);
-      const result = JSON.parse(stdout);
-
-      if (result.error) {
-        throw new Error(result.error);
-      }
-
-      setItems(result.items || []);
+      const result = await getOutputFormats();
+      setItems(result.items);
     } catch (error) {
       console.error("Error loading output formats:", error);
       await showToast({
@@ -54,7 +31,7 @@ export default function Command() {
     }
   };
 
-  const setFormat = async (item: ListItem) => {
+  const setFormat = async (item: FormatItem) => {
     if (!item.sampleRate || !item.bitDepth || !item.channels) {
       await showToast({
         style: Toast.Style.Failure,
@@ -71,29 +48,16 @@ export default function Command() {
         message: `Configuring to ${item.title}...`,
       });
 
-      const scriptPath = path.join(
-        environment.assetsPath,
-        "output-formats.swift",
+      const result = await setOutputFormat(
+        item.sampleRate,
+        item.bitDepth,
+        item.channels,
       );
-
-      const { stdout } = await execa("swift", [
-        scriptPath,
-        "set",
-        item.sampleRate.toString(),
-        item.bitDepth.toString(),
-        item.channels.toString(),
-      ]);
-
-      const result = JSON.parse(stdout);
-
-      if (result.error) {
-        throw new Error(result.error);
-      }
 
       await showToast({
         style: Toast.Style.Success,
         title: "Output Format Updated",
-        message: result.success || `Set to ${item.title}`,
+        message: result.success,
       });
 
       // Refresh the list after a short delay to allow the change to take effect
@@ -149,7 +113,7 @@ export default function Command() {
     }
   };
 
-  const isHighQuality = (item: ListItem) => {
+  const isHighQuality = (item: FormatItem) => {
     return (
       item.sampleRate &&
       item.sampleRate >= 192000 &&
