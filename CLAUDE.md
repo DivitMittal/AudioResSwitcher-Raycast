@@ -46,24 +46,34 @@ raycast-extension/
 │   ├── input-formats.tsx            # Input device UI & logic
 │   ├── audio-bitrate-menubar.tsx    # Menubar bitrate monitor
 │   └── types.ts                     # TypeScript type definitions
+├── swift/
+│   ├── Package.swift                # Swift Package Manager manifest
+│   └── Sources/
+│       └── AudioFormats.swift       # CoreAudio integration (@raycast functions)
 └── assets/
-    ├── output-formats.swift         # Swift: output format control
-    ├── input-formats.swift          # Swift: input format control
-    ├── audio-bitrate.swift          # Swift: bitrate info retrieval
     └── command-icon.png             # Extension icon
 ```
 
 ### Component Responsibilities
 - **`output-formats.tsx` / `input-formats.tsx`**: React components providing Raycast UI for format selection
 - **`audio-bitrate-menubar.tsx`**: MenuBar extra component displaying current audio bitrates
-- **`output-formats.swift` / `input-formats.swift`**: Swift scripts querying CoreAudio and manipulating device properties
-- **`audio-bitrate.swift`**: Swift script for retrieving current bitrate information
-- **`assets/`**: Directory containing executable Swift scripts (with execute permissions set)
+- **`types.ts`**: Shared TypeScript type definitions matching Swift Codable structs
+- **`swift/Sources/AudioFormats.swift`**: Swift Package with @raycast-exported functions for CoreAudio operations
+  - `getOutputFormats()` / `setOutputFormat()`: Output device format management
+  - `getInputFormats()` / `setInputFormat()`: Input device format management
+  - `getAudioBitrate()`: Real-time bitrate information retrieval
+- **`swift/Package.swift`**: Swift Package Manager manifest with Raycast Swift tools dependencies
 
 ### Integration Architecture
-1. **Swift Script Execution**: TypeScript uses `execa` to run Swift scripts for CoreAudio operations
-2. **Swift Script Location**: Swift scripts are maintained directly in `assets/` directory with executable permissions
-3. **Build Process**: Raycast CLI (`ray`) handles building TypeScript/React components; Swift scripts are pre-positioned in assets/
+1. **Raycast Swift Tools**: Uses official `@raycast` macros for type-safe Swift ↔ TypeScript communication
+2. **Build Plugins**: Raycast build plugins auto-generate TypeScript bindings from `@raycast` functions
+3. **Import Pattern**: TypeScript imports Swift functions via `import { functionName } from "swift:../swift"`
+4. **Type Safety**: Swift `Encodable` structs automatically serialize to TypeScript types
+5. **Error Handling**: Swift `throws` errors map to Promise rejections in TypeScript
+6. **Build Process**:
+   - Raycast CLI (`ray build` / `ray develop`) compiles both TypeScript and Swift
+   - Swift Package Manager resolves dependencies and builds Swift code
+   - Build plugins generate TypeScript bindings automatically
 
 ## Features
 
@@ -85,15 +95,14 @@ Real-time menubar display showing current audio bitrate for both input and outpu
 ## Audio Format Management
 
 ### Format Detection Strategy
-1. **Primary**: Swift scripts query CoreAudio API for exact supported formats per device
-2. **Fallback**: Intelligent defaults based on device transport type:
-   - **USB/Thunderbolt/Firewire**: Up to 192kHz 32-bit for pro interfaces
-   - **Built-in**: Typically up to 48kHz 24-bit
-   - **Bluetooth/AirPlay**: Limited to 48kHz 16-bit
-3. **Format Data**: Sample rate (Hz), bit depth, channel count
+1. **Primary**: Swift CoreAudio API queries for exact supported formats per device
+2. **Physical Formats**: Queries `kAudioStreamPropertyAvailablePhysicalFormats` for real hardware capabilities
+3. **Format Data**: Sample rate (Hz), bit depth, channel count, format type (Float/Integer)
+4. **Deduplication**: Filters duplicate formats to show only unique configurations
 
 ### Format Switching
-- Swift scripts directly manipulate CoreAudio device properties via AudioObjectSetPropertyData
+- Swift code directly manipulates CoreAudio device properties via `AudioObjectSetPropertyData`
+- Targets `kAudioStreamPropertyPhysicalFormat` for actual hardware format (not virtual/software layer)
 - Raycast UI provides format selection with real-time feedback
 - Changes take effect immediately without device restart
 
@@ -101,21 +110,26 @@ Real-time menubar display showing current audio bitrate for both input and outpu
 
 ### Error Handling
 ```
-Swift Script (JSON) → execa → TypeScript → UI Toast
-    ├─ Success: { items: [...] }
-    └─ Error: { error: "message" } → Fallback formats
+Swift @raycast Function → Promise → TypeScript → UI Toast
+    ├─ Success: Typed result object (e.g., AudioFormatsResult)
+    └─ Error: Swift throws → Promise rejection → Error toast
 ```
 
 ### Build System
-- Swift scripts are stored directly in `assets/` directory (not copied from `src/`)
-- Swift scripts must have executable permissions: `chmod +x assets/*.swift`
-- Raycast CLI (`ray build` / `ray develop`) handles TypeScript/React compilation
-- **Adding new Swift scripts**: Place in `assets/` and run `chmod +x assets/script-name.swift`
+- **Swift Package Manager**: Manages Swift dependencies and compilation
+- **Raycast Swift Tools**: Build plugins generate TypeScript bindings at compile time
+- **Type Generation**: `@raycast` macros automatically create TypeScript interfaces
+- **Raycast CLI**: `ray build` / `ray develop` orchestrates full build pipeline
+- **Adding new Swift functions**:
+  1. Add `@raycast func` to `swift/Sources/AudioFormats.swift`
+  2. Ensure return types conform to `Encodable`
+  3. Import in TypeScript via `import { functionName } from "swift:../swift"`
 
 ### Cross-Language Interface
-- **Swift → TypeScript**: JSON output via stdout
-- **TypeScript → Swift**: Command-line arguments (device type, sample rate, bit depth, channels)
-- **Error Reporting**: stderr and exit codes
+- **Swift → TypeScript**: Automatic serialization via `Encodable` protocol
+- **TypeScript → Swift**: Direct function calls with typed parameters
+- **Type Safety**: Compile-time type checking on both sides
+- **Error Propagation**: Swift `throws` → TypeScript `Promise.reject()`
 
 ## Testing & Debugging
 
@@ -130,11 +144,42 @@ npm run dev             # Launch in Raycast development mode
 
 ### System Verification
 - **Audio MIDI Setup.app**: Verify actual device format changes
-- **Swift script logs**: Emoji-prefixed verbose output (🎯 🔍 ✅ ❌)
-- **Raycast console**: TypeScript console.log output in dev mode
+- **Raycast console**: TypeScript console.log and Swift error output in dev mode
+- **Swift Package Build**: Check `.build/` directory for compilation artifacts
 
 ## Platform Requirements
-- **OS**: macOS only (CoreAudio framework)
-- **Runtime**: Swift 5.0+, Node.js 22.14+
+- **OS**: macOS 12+ (CoreAudio framework)
+- **Runtime**: Swift 5.9+, Node.js 22.14+
 - **Raycast**: 1.26.0+
+- **Xcode**: Required for Swift Package Manager build tools
 - **Build**: Nix with direnv (optional but recommended)
+
+## Swift Integration Details
+
+### Dependencies
+The project uses Raycast's official Swift tools for type-safe integration:
+- **extensions-swift-tools** (v1.0.4+): Provides `@raycast` macros and build plugins
+- **RaycastSwiftMacros**: Macro annotations for exported functions
+- **RaycastSwiftPlugin**: Swift code generation plugin
+- **RaycastTypeScriptPlugin**: TypeScript binding generation plugin
+
+### Exported Functions
+All functions in `AudioFormats.swift` marked with `@raycast` are automatically available in TypeScript:
+
+```swift
+@raycast func getOutputFormats() throws -> AudioFormatsResult
+@raycast func setOutputFormat(sampleRate: Double, bitDepth: Int, channels: Int) throws -> FormatChangeResult
+@raycast func getInputFormats() throws -> AudioFormatsResult
+@raycast func setInputFormat(sampleRate: Double, bitDepth: Int, channels: Int) throws -> FormatChangeResult
+@raycast func getAudioBitrate() throws -> AudioBitrateData
+```
+
+### TypeScript Usage
+```typescript
+import { getOutputFormats, setOutputFormat } from "swift:../swift";
+import type { AudioFormatsResult, FormatChangeResult } from "./types";
+
+// Direct async/await usage
+const formats = await getOutputFormats();
+const result = await setOutputFormat(192000, 24, 2);
+```
