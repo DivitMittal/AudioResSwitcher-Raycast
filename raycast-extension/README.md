@@ -1,90 +1,192 @@
-# Audio Format Inspector - Raycast Extension
+# Audio Resolution Switcher - Raycast Extension
 
-A Raycast extension for inspecting supported audio formats on the current input and output devices, with the ability to switch between formats.
+Control audio quality with precision. Switch sample rates, bit depth, and formats for input/output devices. Monitor current bitrate in menubar. Perfect for audiophiles and audio professionals.
 
 ## Features
 
-- **Input Device Formats**: List all supported audio formats for the current input device
-- **Output Device Formats**: List all supported audio formats for the current output device
-- **Format Switching**: Set audio devices to specific sample rates and bit depths
-- **Lossless Quality Detection**: Highlights high-quality formats (192kHz/24-bit+)
+- **Input Device Formats**: List and switch between all supported audio formats for your input device (microphone, audio interface)
+- **Output Device Formats**: List and switch between all supported audio formats for your output device (speakers, headphones, DAC)
+- **Format Switching**: Instantly set audio devices to specific sample rates, bit depths, and channel configurations
+- **Menubar Monitor**: Real-time display of current audio bitrate and quality for both input and output devices
+- **Lossless Quality Detection**: Visual indicators (crown, star icons) for high-quality formats (192kHz/24-bit+)
+- **Swift + CoreAudio**: Native macOS audio control using CoreAudio framework for reliable format switching
 
 ## Commands
 
-1. **Input Device Formats** (`input-formats.tsx`)
-   - Shows current input device name
-   - Lists all supported input formats with sample rate, bit depth, and channels
-   - Highlights the currently active format
-   - Allows switching to any supported format
-   - Refresh device info with Cmd+R
+### 1. **Input Device Formats** (`input-formats.tsx`)
+View and control microphone/input audio quality:
+- Shows current input device name (USB audio interface, built-in mic, etc.)
+- Lists all supported input formats with sample rate, bit depth, and channels
+- Highlights the currently active format with a checkmark
+- Switch to any supported format with one click
+- Refresh device info with **Cmd+R**
+- Quality indicators for lossless formats
 
-2. **Output Device Formats** (`output-formats.tsx`)
-   - Shows current output device name
-   - Lists all supported output formats with sample rate, bit depth, and channels
-   - Highlights the currently active format
-   - Allows switching to any supported format
-   - Special integration with Swift scripts for highest quality formats
-   - Crown icon for lossless quality formats (192kHz/24-bit+)
-   - Refresh device info with Cmd+R
+### 2. **Output Device Formats** (`output-formats.tsx`)
+View and control speaker/headphone audio quality:
+- Shows current output device name (DAC, headphones, built-in speakers, etc.)
+- Lists all supported output formats with sample rate, bit depth, and channels
+- Highlights the currently active format with a checkmark
+- Switch to any supported format with one click
+- Crown icon 👑 for lossless quality formats (192kHz/24-bit+)
+- Star icon ⭐ for high-quality formats (96kHz/24-bit+)
+- Refresh device info with **Cmd+R**
+
+### 3. **Audio Bitrate Monitor** (`audio-bitrate-menubar.tsx`)
+Real-time menubar monitoring:
+- **Compact display**: Shows `Out: 96k/24 | In: 48k/24` in menubar
+- **Quality indicators**: Crown (192k/24+), Star (96k/24+), Circle (standard quality)
+- **Auto-refresh**: Updates every 5 seconds to track format changes
+- **Click to expand**: Dropdown shows device names and full format details
+- **Quick actions**: Direct links to Input/Output Format commands for switching
+- **Always visible**: Keep track of audio quality without opening any windows
 
 ## Format Information Displayed
 
 For each audio format, you'll see:
-- **Format Name**: Human-readable format description
+- **Format Name**: Human-readable format description (e.g., "192kHz 24-bit Stereo")
 - **Sample Rate**: In Hz (e.g., 44100, 48000, 96000, 192000)
 - **Bit Depth**: In bits (e.g., 16, 24, 32)
-- **Channels**: Mono, Stereo, or multi-channel
-- **Quality Indicator**: Shows "k" rating (e.g., "44.1k", "192k")
-- **Current Status**: Indicates which format is currently active
+- **Channels**: Mono, Stereo, or multi-channel configurations
+- **Quality Indicator**: Shows "k" rating (e.g., "44.1k", "96k", "192k")
+- **Current Status**: Checkmark indicates the currently active format
+- **Quality Icons**:
+  - 👑 Crown = Lossless/Hi-Res (192kHz/24-bit+)
+  - ⭐ Star = High Quality (96kHz/24-bit+)
+  - ⚪ Circle = Standard Quality
 
-## Integration with Existing Scripts
+## Technical Architecture
 
-The extension integrates with your existing Swift audio control scripts:
-- Uses `../set_highest_format.swift` for setting optimal output formats
-- Falls back to AppleScript automation when Swift scripts aren't available
-- Maintains compatibility with your current audio switching workflow
+The extension uses a hybrid TypeScript + Swift architecture:
 
-## Installation
+### Swift Scripts (CoreAudio Integration)
+- **`assets/output-formats.swift`**: Queries and sets output device formats via CoreAudio API
+- **`assets/input-formats.swift`**: Queries and sets input device formats via CoreAudio API
+- **`assets/audio-bitrate.swift`**: Retrieves current bitrate information for menubar display
+- All scripts output JSON for TypeScript consumption
+- Direct manipulation of AudioObjectSetPropertyData for reliable format switching
 
-1. Install dependencies:
+### TypeScript/React (Raycast UI)
+- **`src/output-formats.tsx`**: Output device UI and format selection logic
+- **`src/input-formats.tsx`**: Input device UI and format selection logic
+- **`src/audio-bitrate-menubar.tsx`**: Menubar component with auto-refresh
+- Uses `execa` package to execute Swift scripts and parse JSON responses
+- Provides fallback format lists based on device transport type when Swift detection fails
+
+## Installation & Setup
+
+### Prerequisites
+- **macOS**: Required (uses CoreAudio framework)
+- **Node.js**: 22.14+ recommended
+- **Raycast**: 1.26.0 or later
+- **Nix + direnv** (optional): For reproducible development environment
+
+### Development Setup
+
+1. **Clone and navigate to extension directory**:
+   ```bash
+   cd raycast-extension
+   ```
+
+2. **Install dependencies**:
    ```bash
    npm install
    ```
 
-2. Start development:
+3. **Start development mode** (launches Raycast in dev mode):
    ```bash
    npm run dev
    ```
 
-3. The extension will appear in Raycast with two commands:
-   - "Input Device Formats"
-   - "Output Device Formats"
+4. **Verify installation in Raycast**:
+   - Search for "Input Device Formats"
+   - Search for "Output Device Formats"
+   - Search for "Audio Bitrate Monitor"
 
-## Usage
+### Building for Production
 
-1. **View Current Formats**: Launch either command to see the current device and its active format
-2. **Browse Supported Formats**: Scroll through all formats supported by the device
-3. **Switch Formats**: Press Enter on any non-current format to switch to it
-4. **Copy Format Info**: Use the copy action to copy format names to clipboard
-5. **Refresh**: Use Cmd+R to refresh device information
+```bash
+npm run build     # Build extension
+npm run lint      # Check code quality
+npm run fix-lint  # Auto-fix linting issues
+npm run publish   # Publish to Raycast Store
+```
 
-## Technical Details
+## Usage Guide
 
-- Uses Audio MIDI Setup automation to detect formats
-- Parses format strings to extract sample rate, bit depth, and channel information
-- Provides fallback format lists when detection fails
-- Integrates with existing Swift scripts for advanced format control
+### Format Switching Commands
 
-## Requirements
+1. **View Current Format**:
+   - Open either "Input Device Formats" or "Output Device Formats"
+   - Current device name and active format appear at the top
 
-- macOS (Raycast extension)
-- Node.js 22.14+
-- Raycast 1.26.0+
-- Audio MIDI Setup (built into macOS)
+2. **Browse Available Formats**:
+   - Scroll through all formats supported by your device
+   - Quality icons (crown/star) indicate high-quality formats
+   - Current format is marked with a checkmark
+
+3. **Switch Format**:
+   - Select any format and press **Enter**
+   - Format changes immediately (no device restart needed)
+   - Confirmation toast appears on success
+
+4. **Refresh Device Info**:
+   - Press **Cmd+R** to refresh if you changed devices
+   - Automatically detects new device and available formats
+
+### Menubar Monitor
+
+1. **Enable in Raycast**:
+   - Search for "Audio Bitrate Monitor"
+   - Toggle on in Raycast preferences
+
+2. **View at a Glance**:
+   - Menubar shows: `Out: 96k/24 | In: 48k/24`
+   - Quality icons indicate audio quality level
+
+3. **Access Details**:
+   - Click menubar icon to see full device names
+   - Use quick links to switch formats directly
 
 ## Keyboard Shortcuts
 
-- **Cmd+R**: Refresh device information
-- **Cmd+H**: Set to highest quality format (output formats only)
-- **Enter**: Set selected format
-- **Cmd+C**: Copy format name to clipboard
+| Shortcut | Action |
+|----------|--------|
+| **Cmd+R** | Refresh device information |
+| **Enter** | Switch to selected format |
+| **Cmd+C** | Copy format name to clipboard |
+| **Escape** | Close command |
+
+## Supported Devices
+
+The extension works with all macOS audio devices:
+- **Built-in**: MacBook speakers/microphone, iMac audio
+- **USB/Thunderbolt**: Audio interfaces (Focusrite, Universal Audio, etc.)
+- **Bluetooth**: AirPods, wireless headphones
+- **HDMI/DisplayPort**: Monitor audio output
+- **Professional DACs**: External digital-to-analog converters
+
+## Troubleshooting
+
+### Formats not appearing?
+- Press **Cmd+R** to refresh
+- Check device is connected and selected as default in System Preferences
+- Some Bluetooth devices may have limited format support
+
+### Format switch not working?
+- Ensure device supports the selected format
+- Some devices require exclusive access (close other audio apps)
+- Check Audio MIDI Setup.app to verify actual device capabilities
+
+### Menubar not updating?
+- Menubar refreshes every 5 seconds automatically
+- If stuck, disable and re-enable the command in Raycast preferences
+
+## Contributing
+
+Contributions welcome! This project uses:
+- TypeScript + React for UI
+- Swift for CoreAudio integration
+- Raycast API for extension framework
+
+See [CLAUDE.md](../CLAUDE.md) for detailed architecture and development guidelines.
