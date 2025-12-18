@@ -18,8 +18,11 @@
 ---
 
 <div align='center'>
-    <a href="https://github.com/DivitMittal/AudioResSwitcher-Raycast/actions">
-        <img src="https://img.shields.io/github/actions/workflow/status/DivitMittal/AudioResSwitcher-Raycast/ci.yml?style=flat-square" alt="CI Status"/>
+    <a href="https://github.com/DivitMittal/AudioResSwitcher-Raycast/actions/workflows/flake-check.yml">
+        <img src="https://img.shields.io/github/actions/workflow/status/DivitMittal/AudioResSwitcher-Raycast/flake-check.yml?style=flat-square&label=flake%20check" alt="Flake Check"/>
+    </a>
+    <a href="https://github.com/DivitMittal/AudioResSwitcher-Raycast/actions/workflows/flake-lock-update.yml">
+        <img src="https://img.shields.io/github/actions/workflow/status/DivitMittal/AudioResSwitcher-Raycast/flake-lock-update.yml?style=flat-square&label=flake%20update" alt="Flake Lock Update"/>
     </a>
     <a href="https://www.raycast.com/divm/audio-res-switcher">
         <img src="https://img.shields.io/badge/Raycast-Store-blue?style=flat-square" alt="Raycast Store"/>
