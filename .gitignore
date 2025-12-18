@@ -15,6 +15,8 @@ result-*
 ## AI Tools
 *local.json
 *serena
+.claude*
+.mcp.json
 
 ## Node.js / pnpm
 node_modules/
