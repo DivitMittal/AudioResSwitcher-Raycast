@@ -27,7 +27,7 @@
             nixd
             alejandra
             ## Swift
-            sourcekit-lsp
+            # sourcekit-lsp
             swift-format
             #swift
             ;
