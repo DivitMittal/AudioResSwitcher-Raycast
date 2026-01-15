@@ -1,34 +1,7 @@
 import { MenuBarExtra, Icon, open } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { getAudioBitrate } from "swift:../swift";
-
-function formatBitrate(sampleRate?: number, bitDepth?: number): string {
-  if (!sampleRate || !bitDepth) {
-    return "N/A";
-  }
-
-  const rateKhz = sampleRate / 1000;
-  return `${rateKhz >= 1000 ? `${rateKhz / 1000}M` : `${rateKhz}k`}/${bitDepth}`;
-}
-
-function getQualityIcon(sampleRate?: number, bitDepth?: number): Icon {
-  if (!sampleRate || !bitDepth) {
-    return Icon.QuestionMark;
-  }
-
-  // High quality: 192kHz+ with 24+ bit depth
-  if (sampleRate >= 192000 && bitDepth >= 24) {
-    return Icon.Crown;
-  }
-
-  // Good quality: 96kHz+ with 24+ bit depth
-  if (sampleRate >= 96000 && bitDepth >= 24) {
-    return Icon.Star;
-  }
-
-  // Standard quality
-  return Icon.Circle;
-}
+import { formatBitrate, getQualityIcon } from "./utils";
 
 export default function Command() {
   const { data, isLoading, revalidate } = useCachedPromise(getAudioBitrate, [], {
@@ -42,11 +15,7 @@ export default function Command() {
   const title = `Out: ${outputBitrate} | In: ${inputBitrate}`;
 
   return (
-    <MenuBarExtra
-      title={title}
-      isLoading={isLoading}
-      tooltip="Audio Bitrate Monitor"
-    >
+    <MenuBarExtra title={title} isLoading={isLoading} tooltip="Audio Bitrate Monitor">
       <MenuBarExtra.Section title="Output Device">
         {data.outputDevice && (
           <MenuBarExtra.Item
@@ -62,9 +31,7 @@ export default function Command() {
             subtitle="Current Format"
           />
         )}
-        {!data.outputDevice && (
-          <MenuBarExtra.Item title="No output device" icon={Icon.XMarkCircle} />
-        )}
+        {!data.outputDevice && <MenuBarExtra.Item title="No output device" icon={Icon.XMarkCircle} />}
       </MenuBarExtra.Section>
 
       <MenuBarExtra.Section title="Input Device">
@@ -82,9 +49,7 @@ export default function Command() {
             subtitle="Current Format"
           />
         )}
-        {!data.inputDevice && (
-          <MenuBarExtra.Item title="No input device" icon={Icon.XMarkCircle} />
-        )}
+        {!data.inputDevice && <MenuBarExtra.Item title="No input device" icon={Icon.XMarkCircle} />}
       </MenuBarExtra.Section>
 
       <MenuBarExtra.Section>

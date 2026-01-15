@@ -1,0 +1,132 @@
+import { useState, useEffect } from "react";
+import { ActionPanel, Action, List, Icon, showToast, Toast } from "@raycast/api";
+import type { FormatItem } from "./types";
+import { getIcon, isLosslessQuality } from "./utils";
+
+interface FormatListProps {
+  deviceType: "input" | "output";
+  loadFormats: () => Promise<{ items: FormatItem[] }>;
+  setFormat: (sampleRate: number, bitDepth: number, channels: number) => Promise<{ success: string }>;
+}
+
+export function FormatList({ deviceType, loadFormats, setFormat }: FormatListProps) {
+  const [items, setItems] = useState<FormatItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadFormatsList = async () => {
+    try {
+      setIsLoading(true);
+      const result = await loadFormats();
+      setItems(result.items);
+    } catch (error) {
+      console.error(`Error loading ${deviceType} formats:`, error);
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Error Loading Formats",
+        message: String(error),
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setDeviceFormat = async (item: FormatItem) => {
+    if (!item.sampleRate || !item.bitDepth || !item.channels) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Invalid Format",
+        message: "Missing format parameters",
+      });
+      return;
+    }
+
+    try {
+      await showToast({
+        style: Toast.Style.Animated,
+        title: `Setting ${deviceType === "input" ? "Input" : "Output"} Format`,
+        message: `Configuring to ${item.title}...`,
+      });
+
+      const result = await setFormat(item.sampleRate, item.bitDepth, item.channels);
+
+      await showToast({
+        style: Toast.Style.Success,
+        title: `${deviceType === "input" ? "Input" : "Output"} Format Updated`,
+        message: result.success,
+      });
+
+      setTimeout(() => loadFormatsList(), 500);
+    } catch (error) {
+      console.error("Error setting format:", error);
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "Failed to Set Format",
+        message: String(error),
+      });
+    }
+  };
+
+  const setToHighestQuality = async () => {
+    const highestQualityFormat = items.find((item) => item.type === "format" && isLosslessQuality(item));
+
+    if (highestQualityFormat) {
+      await setDeviceFormat(highestQualityFormat);
+    } else {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "No High Quality Format Found",
+        message: "No 192kHz/24-bit+ format available",
+      });
+    }
+  };
+
+  useEffect(() => {
+    loadFormatsList();
+  }, []);
+
+  const formatItems = items.filter((item) => item.type === "format");
+  const deviceInfo = items.find((item) => item.type === "info");
+
+  return (
+    <List isLoading={isLoading} searchBarPlaceholder="Search audio formats...">
+      {formatItems.map((item, index) => (
+        <List.Item
+          key={index}
+          title={item.title}
+          subtitle={item.subtitle}
+          icon={getIcon(item.icon)}
+          accessories={[...(isLosslessQuality(item) ? [{ icon: Icon.Crown, tooltip: "Lossless Quality" }] : [])]}
+          actions={
+            <ActionPanel>
+              {!item.isCurrent && (
+                <Action title="Set This Format" icon={Icon.Gear} onAction={() => setDeviceFormat(item)} />
+              )}
+              {isLosslessQuality(item) && (
+                <Action
+                  title="Set to Highest Quality"
+                  icon={Icon.Crown}
+                  onAction={setToHighestQuality}
+                  shortcut={{ modifiers: ["cmd"], key: "h" }}
+                />
+              )}
+              <Action
+                title="Refresh Formats"
+                icon={Icon.ArrowClockwise}
+                onAction={loadFormatsList}
+                shortcut={{ modifiers: ["cmd"], key: "r" }}
+              />
+              <Action.CopyToClipboard content={item.title} title="Copy Format Name" />
+              {deviceInfo && (
+                <Action.CopyToClipboard
+                  content={deviceInfo.title}
+                  title="Copy Device Name"
+                  shortcut={{ modifiers: ["cmd"], key: "d" }}
+                />
+              )}
+            </ActionPanel>
+          }
+        />
+      ))}
+    </List>
+  );
+}
