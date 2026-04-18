@@ -1,5 +1,3 @@
-# CLAUDE.md
-
 ## Project Overview
 
 AudioResSwitcher-Raycast is a Raycast extension for macOS that enables users to inspect and switch between audio formats on input/output devices with lossless quality control.
