@@ -332,10 +332,12 @@ private func getDeviceName(deviceID: AudioDeviceID) -> String? {
   var deviceName: Unmanaged<CFString>?
   var propertySize = UInt32(MemoryLayout<Unmanaged<CFString>>.size)
 
+  // kAudioDevicePropertyDeviceNameCFString returns a +1 retained CFString;
+  // the caller owns it and must release it. takeRetainedValue() does that.
   guard
     AudioObjectGetPropertyData(deviceID, &propertyAddress, 0, nil, &propertySize, &deviceName)
       == noErr,
-    let name = deviceName?.takeUnretainedValue()
+    let name = deviceName?.takeRetainedValue()
   else {
     return nil
   }
