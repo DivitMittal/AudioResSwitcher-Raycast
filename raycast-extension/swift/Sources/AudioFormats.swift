@@ -191,12 +191,17 @@ private func listFormats(deviceID: AudioDeviceID, deviceName: String, isInput: B
       deviceID: deviceID, sampleRate: rate, isInput: isInput)
 
     for format in streamFormats {
-      let isCurrent =
-        currentFormat != nil && abs(currentFormat!.mSampleRate - format.mSampleRate) < 0.1
-        && currentFormat!.mBitsPerChannel == format.mBitsPerChannel
-        && currentFormat!.mChannelsPerFrame == format.mChannelsPerFrame
-
       let formatType = format.mFormatFlags & kAudioFormatFlagIsFloat != 0 ? "Float" : "Integer"
+
+      let isCurrent: Bool = {
+        guard let current = currentFormat else { return false }
+        let currentIsFloat = current.mFormatFlags & kAudioFormatFlagIsFloat != 0
+        let formatIsFloat = format.mFormatFlags & kAudioFormatFlagIsFloat != 0
+        return abs(current.mSampleRate - format.mSampleRate) < 0.1
+          && current.mBitsPerChannel == format.mBitsPerChannel
+          && current.mChannelsPerFrame == format.mChannelsPerFrame
+          && currentIsFloat == formatIsFloat
+      }()
 
       // Create unique key for deduplication
       let formatKey =
