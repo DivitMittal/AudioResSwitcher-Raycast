@@ -66,17 +66,15 @@ enum AudioFormatError: Error {
     throw AudioFormatError.deviceNotFound("Could not find default output device")
   }
 
-  if setFormat(
-    deviceID: deviceID, sampleRate: sampleRate, bitDepth: bitDepth, channels: channels,
-    isInput: false)
-  {
-    return FormatChangeResult(
-      success:
-        "Successfully set output format to \(Int(sampleRate)) Hz \(bitDepth)-bit \(channels)-channel"
-    )
-  } else {
+  guard
+    let applied = setFormat(
+      deviceID: deviceID, sampleRate: sampleRate, bitDepth: bitDepth, channels: channels,
+      isInput: false)
+  else {
     throw AudioFormatError.formatSetFailed("Failed to set output format")
   }
+
+  return FormatChangeResult(success: "Output format set to \(describe(format: applied))")
 }
 
 @raycast func getInputFormats() throws -> AudioFormatsResult {
@@ -99,17 +97,15 @@ enum AudioFormatError: Error {
     throw AudioFormatError.deviceNotFound("Could not find default input device")
   }
 
-  if setFormat(
-    deviceID: deviceID, sampleRate: sampleRate, bitDepth: bitDepth, channels: channels,
-    isInput: true)
-  {
-    return FormatChangeResult(
-      success:
-        "Successfully set input format to \(Int(sampleRate)) Hz \(bitDepth)-bit \(channels)-channel"
-    )
-  } else {
+  guard
+    let applied = setFormat(
+      deviceID: deviceID, sampleRate: sampleRate, bitDepth: bitDepth, channels: channels,
+      isInput: true)
+  else {
     throw AudioFormatError.formatSetFailed("Failed to set input format")
   }
+
+  return FormatChangeResult(success: "Input format set to \(describe(format: applied))")
 }
 
 @raycast func getAudioBitrate() throws -> AudioBitrateData {
@@ -256,31 +252,38 @@ private func listFormats(deviceID: AudioDeviceID, deviceName: String, isInput: B
   return sortedItems
 }
 
+/// Sets the device format and returns the format actually applied to the hardware,
+/// or nil if the change failed. Reads back the physical format after setting so the
+/// caller can report the truth (driver may have substituted a different format, or
+/// the call may have only changed the nominal sample rate).
 private func setFormat(
   deviceID: AudioDeviceID, sampleRate: Double, bitDepth: Int, channels: Int, isInput: Bool
-) -> Bool {
-  // Try to find matching format
+) -> AudioStreamBasicDescription? {
   let streamFormats = getAvailableStreamFormats(
     deviceID: deviceID, sampleRate: sampleRate, isInput: isInput)
 
-  var targetFormat: AudioStreamBasicDescription?
-
-  // Find exact match
-  targetFormat = streamFormats.first { format in
+  let exactMatch = streamFormats.first { format in
     format.mBitsPerChannel == bitDepth && format.mChannelsPerFrame == channels
   }
 
-  if targetFormat == nil && !streamFormats.isEmpty {
-    // Find best available format at this sample rate
-    targetFormat = findBestFormat(formats: streamFormats)
+  let targetFormat = exactMatch ?? (streamFormats.isEmpty ? nil : findBestFormat(formats: streamFormats))
+
+  let applied: Bool
+  if let format = targetFormat {
+    applied = setStreamFormat(deviceID: deviceID, format: format, isInput: isInput)
+  } else {
+    // No matching physical format — fall back to the nominal sample rate.
+    // Bit depth and channels are left as the device's current setting.
+    applied = setSampleRate(deviceID: deviceID, sampleRate: sampleRate)
   }
 
-  if let format = targetFormat {
-    return setStreamFormat(deviceID: deviceID, format: format, isInput: isInput)
-  } else {
-    // Fall back to setting just sample rate
-    return setSampleRate(deviceID: deviceID, sampleRate: sampleRate)
-  }
+  guard applied else { return nil }
+  return getCurrentStreamFormat(deviceID: deviceID, isInput: isInput)
+}
+
+private func describe(format: AudioStreamBasicDescription) -> String {
+  let channels = format.mChannelsPerFrame
+  return "\(Int(format.mSampleRate)) Hz \(format.mBitsPerChannel)-bit \(channels)-channel"
 }
 
 // MARK: - CoreAudio Helper Functions
