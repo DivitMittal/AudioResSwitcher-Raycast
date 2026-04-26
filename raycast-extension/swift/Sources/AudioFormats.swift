@@ -47,112 +47,99 @@ enum AudioFormatError: Error {
 // MARK: - Raycast Exported Functions
 
 @raycast func getOutputFormats() throws -> AudioFormatsResult {
-  guard let deviceID = getDefaultOutputDevice() else {
-    throw AudioFormatError.deviceNotFound("Could not find default output device")
-  }
-
-  guard let deviceName = getDeviceName(deviceID: deviceID) else {
-    throw AudioFormatError.deviceNameNotFound
-  }
-
-  let items = listFormats(deviceID: deviceID, deviceName: deviceName, isInput: false)
-  return AudioFormatsResult(items: items)
+  return try listFormatsResult(isInput: false)
 }
 
 @raycast func setOutputFormat(sampleRate: Double, bitDepth: Int, channels: Int) throws
   -> FormatChangeResult
 {
-  guard let deviceID = getDefaultOutputDevice() else {
-    throw AudioFormatError.deviceNotFound("Could not find default output device")
-  }
-
-  guard
-    let applied = setFormat(
-      deviceID: deviceID, sampleRate: sampleRate, bitDepth: bitDepth, channels: channels,
-      isInput: false)
-  else {
-    throw AudioFormatError.formatSetFailed("Failed to set output format")
-  }
-
-  return FormatChangeResult(success: "Output format set to \(describe(format: applied))")
+  return try applyFormatResult(
+    sampleRate: sampleRate, bitDepth: bitDepth, channels: channels, isInput: false)
 }
 
 @raycast func getInputFormats() throws -> AudioFormatsResult {
-  guard let deviceID = getDefaultInputDevice() else {
-    throw AudioFormatError.deviceNotFound("Could not find default input device")
+  return try listFormatsResult(isInput: true)
+}
+
+@raycast func setInputFormat(sampleRate: Double, bitDepth: Int, channels: Int) throws
+  -> FormatChangeResult
+{
+  return try applyFormatResult(
+    sampleRate: sampleRate, bitDepth: bitDepth, channels: channels, isInput: true)
+}
+
+@raycast func getAudioBitrate() throws -> AudioBitrateData {
+  let output = currentBitrate(isInput: false)
+  let input = currentBitrate(isInput: true)
+
+  return AudioBitrateData(
+    outputSampleRate: output?.sampleRate,
+    outputBitDepth: output?.bitDepth,
+    outputChannels: output?.channels,
+    outputDevice: output?.device,
+    inputSampleRate: input?.sampleRate,
+    inputBitDepth: input?.bitDepth,
+    inputChannels: input?.channels,
+    inputDevice: input?.device
+  )
+}
+
+// MARK: - Direction-keyed entry-point helpers
+
+private func listFormatsResult(isInput: Bool) throws -> AudioFormatsResult {
+  guard let deviceID = getDefaultDevice(isInput: isInput) else {
+    throw AudioFormatError.deviceNotFound(
+      "Could not find default \(isInput ? "input" : "output") device")
   }
 
   guard let deviceName = getDeviceName(deviceID: deviceID) else {
     throw AudioFormatError.deviceNameNotFound
   }
 
-  let items = listFormats(deviceID: deviceID, deviceName: deviceName, isInput: true)
+  let items = listFormats(deviceID: deviceID, deviceName: deviceName, isInput: isInput)
   return AudioFormatsResult(items: items)
 }
 
-@raycast func setInputFormat(sampleRate: Double, bitDepth: Int, channels: Int) throws
-  -> FormatChangeResult
-{
-  guard let deviceID = getDefaultInputDevice() else {
-    throw AudioFormatError.deviceNotFound("Could not find default input device")
+private func applyFormatResult(
+  sampleRate: Double, bitDepth: Int, channels: Int, isInput: Bool
+) throws -> FormatChangeResult {
+  guard let deviceID = getDefaultDevice(isInput: isInput) else {
+    throw AudioFormatError.deviceNotFound(
+      "Could not find default \(isInput ? "input" : "output") device")
   }
 
   guard
     let applied = setFormat(
       deviceID: deviceID, sampleRate: sampleRate, bitDepth: bitDepth, channels: channels,
-      isInput: true)
+      isInput: isInput)
   else {
-    throw AudioFormatError.formatSetFailed("Failed to set input format")
+    throw AudioFormatError.formatSetFailed(
+      "Failed to set \(isInput ? "input" : "output") format")
   }
 
-  return FormatChangeResult(success: "Input format set to \(describe(format: applied))")
+  let label = isInput ? "Input" : "Output"
+  return FormatChangeResult(success: "\(label) format set to \(describe(format: applied))")
 }
 
-@raycast func getAudioBitrate() throws -> AudioBitrateData {
-  var outputSampleRate: Int?
-  var outputBitDepth: Int?
-  var outputChannels: Int?
-  var outputDevice: String?
-  var inputSampleRate: Int?
-  var inputBitDepth: Int?
-  var inputChannels: Int?
-  var inputDevice: String?
+private struct BitrateSnapshot {
+  let sampleRate: Int
+  let bitDepth: Int
+  let channels: Int
+  let device: String?
+}
 
-  // Get output device bitrate
-  if let outputDeviceID = getDefaultOutputDevice() {
-    if let format = getCurrentStreamFormat(deviceID: outputDeviceID, isInput: false) {
-      outputSampleRate = Int(format.mSampleRate)
-      outputBitDepth = Int(format.mBitsPerChannel)
-      outputChannels = Int(format.mChannelsPerFrame)
-
-      if let deviceName = getDeviceName(deviceID: outputDeviceID) {
-        outputDevice = deviceName
-      }
-    }
+private func currentBitrate(isInput: Bool) -> BitrateSnapshot? {
+  guard let deviceID = getDefaultDevice(isInput: isInput),
+    let format = getCurrentStreamFormat(deviceID: deviceID, isInput: isInput)
+  else {
+    return nil
   }
 
-  // Get input device bitrate
-  if let inputDeviceID = getDefaultInputDevice() {
-    if let format = getCurrentStreamFormat(deviceID: inputDeviceID, isInput: true) {
-      inputSampleRate = Int(format.mSampleRate)
-      inputBitDepth = Int(format.mBitsPerChannel)
-      inputChannels = Int(format.mChannelsPerFrame)
-
-      if let deviceName = getDeviceName(deviceID: inputDeviceID) {
-        inputDevice = deviceName
-      }
-    }
-  }
-
-  return AudioBitrateData(
-    outputSampleRate: outputSampleRate,
-    outputBitDepth: outputBitDepth,
-    outputChannels: outputChannels,
-    outputDevice: outputDevice,
-    inputSampleRate: inputSampleRate,
-    inputBitDepth: inputBitDepth,
-    inputChannels: inputChannels,
-    inputDevice: inputDevice
+  return BitrateSnapshot(
+    sampleRate: Int(format.mSampleRate),
+    bitDepth: Int(format.mBitsPerChannel),
+    channels: Int(format.mChannelsPerFrame),
+    device: getDeviceName(deviceID: deviceID)
   )
 }
 
@@ -288,30 +275,14 @@ private func describe(format: AudioStreamBasicDescription) -> String {
 
 // MARK: - CoreAudio Helper Functions
 
-private func getDefaultOutputDevice() -> AudioDeviceID? {
+private func getDefaultDevice(isInput: Bool) -> AudioDeviceID? {
+  let selector =
+    isInput
+    ? kAudioHardwarePropertyDefaultInputDevice
+    : kAudioHardwarePropertyDefaultOutputDevice
+
   var propertyAddress = AudioObjectPropertyAddress(
-    mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-    mScope: kAudioObjectPropertyScopeGlobal,
-    mElement: kAudioObjectPropertyElementMain
-  )
-
-  var deviceID: AudioDeviceID = 0
-  var propertySize = UInt32(MemoryLayout<AudioDeviceID>.size)
-
-  guard
-    AudioObjectGetPropertyData(
-      AudioObjectID(kAudioObjectSystemObject),
-      &propertyAddress, 0, nil, &propertySize, &deviceID) == noErr
-  else {
-    return nil
-  }
-
-  return deviceID != kAudioObjectUnknown ? deviceID : nil
-}
-
-private func getDefaultInputDevice() -> AudioDeviceID? {
-  var propertyAddress = AudioObjectPropertyAddress(
-    mSelector: kAudioHardwarePropertyDefaultInputDevice,
+    mSelector: selector,
     mScope: kAudioObjectPropertyScopeGlobal,
     mElement: kAudioObjectPropertyElementMain
   )
