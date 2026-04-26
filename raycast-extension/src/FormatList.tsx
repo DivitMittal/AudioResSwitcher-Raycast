@@ -66,8 +66,20 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
     }
   };
 
+  const pickHighestQualityFormat = (): FormatItem | undefined => {
+    const losslessFormats = items.filter((item) => item.type === "format" && isLosslessQuality(item));
+    if (losslessFormats.length === 0) {
+      return undefined;
+    }
+    return losslessFormats.reduce((best, candidate) => {
+      const bestScore = (best.sampleRate ?? 0) * (best.bitDepth ?? 0);
+      const candidateScore = (candidate.sampleRate ?? 0) * (candidate.bitDepth ?? 0);
+      return candidateScore > bestScore ? candidate : best;
+    });
+  };
+
   const setToHighestQuality = async () => {
-    const highestQualityFormat = items.find((item) => item.type === "format" && isLosslessQuality(item));
+    const highestQualityFormat = pickHighestQualityFormat();
 
     if (highestQualityFormat) {
       await setDeviceFormat(highestQualityFormat);
@@ -79,6 +91,8 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
       });
     }
   };
+
+  const hasHighestQualityFormat = pickHighestQualityFormat() !== undefined;
 
   useEffect(() => {
     loadFormatsList();
@@ -101,7 +115,7 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
               {!item.isCurrent && (
                 <Action title="Set This Format" icon={Icon.Gear} onAction={() => setDeviceFormat(item)} />
               )}
-              {isLosslessQuality(item) && (
+              {hasHighestQualityFormat && (
                 <Action
                   title="Set to Highest Quality"
                   icon={Icon.Crown}
