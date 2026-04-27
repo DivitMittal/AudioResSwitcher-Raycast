@@ -45,6 +45,20 @@ export function getQualityIcon(sampleRate?: number, bitDepth?: number): Icon {
   return Icon.Circle;
 }
 
+export function errorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
 export function formatBitrate(sampleRate?: number, bitDepth?: number): string {
   if (!sampleRate || !bitDepth) {
     return "N/A";

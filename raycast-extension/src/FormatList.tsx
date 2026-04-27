@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ActionPanel, Action, List, Icon, showToast, Toast } from "@raycast/api";
 import type { FormatItem } from "./types";
-import { getIcon, isLosslessQuality } from "./utils";
+import { errorMessage, getIcon, isLosslessQuality } from "./utils";
 
 interface FormatListProps {
   deviceType: "input" | "output";
@@ -13,6 +13,8 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
   const [items, setItems] = useState<FormatItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const directionLabel = deviceType === "input" ? "Input" : "Output";
+
   const loadFormatsList = async () => {
     try {
       setIsLoading(true);
@@ -23,7 +25,7 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
       await showToast({
         style: Toast.Style.Failure,
         title: "Error Loading Formats",
-        message: String(error),
+        message: errorMessage(error),
       });
     } finally {
       setIsLoading(false);
@@ -40,29 +42,23 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
       return;
     }
 
+    const toast = await showToast({
+      style: Toast.Style.Animated,
+      title: `Setting ${directionLabel} Format`,
+      message: `Configuring to ${item.title}...`,
+    });
+
     try {
-      await showToast({
-        style: Toast.Style.Animated,
-        title: `Setting ${deviceType === "input" ? "Input" : "Output"} Format`,
-        message: `Configuring to ${item.title}...`,
-      });
-
       const result = await setFormat(item.sampleRate, item.bitDepth, item.channels);
-
-      await showToast({
-        style: Toast.Style.Success,
-        title: `${deviceType === "input" ? "Input" : "Output"} Format Updated`,
-        message: result.success,
-      });
-
-      setTimeout(() => loadFormatsList(), 500);
+      toast.style = Toast.Style.Success;
+      toast.title = `${directionLabel} Format Updated`;
+      toast.message = result.success;
+      await loadFormatsList();
     } catch (error) {
       console.error("Error setting format:", error);
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "Failed to Set Format",
-        message: String(error),
-      });
+      toast.style = Toast.Style.Failure;
+      toast.title = "Failed to Set Format";
+      toast.message = errorMessage(error);
     }
   };
 
