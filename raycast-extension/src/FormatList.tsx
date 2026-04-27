@@ -99,13 +99,13 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
 
   return (
     <List isLoading={isLoading} searchBarPlaceholder="Search audio formats...">
-      {formatItems.map((item, index) => (
+      {formatItems.map((item) => (
         <List.Item
-          key={index}
+          key={`${item.sampleRate}-${item.bitDepth}-${item.channels}-${item.subtitle}`}
           title={item.title}
           subtitle={item.subtitle}
           icon={getIcon(item.icon)}
-          accessories={[...(isLosslessQuality(item) ? [{ icon: Icon.Crown, tooltip: "Lossless Quality" }] : [])]}
+          accessories={isLosslessQuality(item) ? [{ icon: Icon.Crown, tooltip: "Lossless Quality" }] : []}
           actions={
             <ActionPanel>
               {!item.isCurrent && (
