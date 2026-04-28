@@ -67,3 +67,12 @@ export function formatBitrate(sampleRate?: number, bitDepth?: number): string {
   const rateKhz = sampleRate / 1000;
   return `${rateKhz >= 1000 ? `${rateKhz / 1000}M` : `${rateKhz}k`}/${bitDepth}`;
 }
+
+export function formatFullFormat(sampleRate?: number, bitDepth?: number, channels?: number): string {
+  if (!sampleRate || !bitDepth) {
+    return "Unknown format";
+  }
+
+  const channelSuffix = channels !== undefined && channels > 0 ? ` ${channels}ch` : "";
+  return `${sampleRate / 1000}kHz ${bitDepth}-bit${channelSuffix}`;
+}

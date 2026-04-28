@@ -1,7 +1,7 @@
 import { MenuBarExtra, Icon, open } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { getAudioBitrate } from "swift:../swift";
-import { formatBitrate, getQualityIcon } from "./utils";
+import { formatBitrate, formatFullFormat, getQualityIcon } from "./utils";
 
 export default function Command() {
   const { data, isLoading, revalidate } = useCachedPromise(getAudioBitrate, [], {
@@ -26,7 +26,7 @@ export default function Command() {
         )}
         {data.outputSampleRate && data.outputBitDepth && (
           <MenuBarExtra.Item
-            title={`${data.outputSampleRate / 1000}kHz ${data.outputBitDepth}-bit ${data.outputChannels || 2}ch`}
+            title={formatFullFormat(data.outputSampleRate, data.outputBitDepth, data.outputChannels)}
             icon={getQualityIcon(data.outputSampleRate, data.outputBitDepth)}
             subtitle="Current Format"
           />
@@ -44,7 +44,7 @@ export default function Command() {
         )}
         {data.inputSampleRate && data.inputBitDepth && (
           <MenuBarExtra.Item
-            title={`${data.inputSampleRate / 1000}kHz ${data.inputBitDepth}-bit ${data.inputChannels || 2}ch`}
+            title={formatFullFormat(data.inputSampleRate, data.inputBitDepth, data.inputChannels)}
             icon={getQualityIcon(data.inputSampleRate, data.inputBitDepth)}
             subtitle="Current Format"
           />
