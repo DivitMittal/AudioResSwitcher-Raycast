@@ -1,12 +1,12 @@
 import { Icon } from "@raycast/api";
-import type { FormatItem } from "./types";
+import type { FormatItem, FormatItemIcon } from "./types";
 
 export const LOSSLESS_SAMPLE_RATE = 192000;
 export const LOSSLESS_BIT_DEPTH = 24;
 export const HIGH_QUALITY_SAMPLE_RATE = 96000;
 export const HIGH_QUALITY_BIT_DEPTH = 24;
 
-export function getIcon(iconName: string): Icon {
+export function getIcon(iconName: FormatItemIcon): Icon {
   switch (iconName) {
     case "checkmark.circle.fill":
     case "checkmark.circle":
@@ -15,8 +15,6 @@ export function getIcon(iconName: string): Icon {
       return Icon.Circle;
     case "crown":
       return Icon.Crown;
-    default:
-      return Icon.Circle;
   }
 }
 

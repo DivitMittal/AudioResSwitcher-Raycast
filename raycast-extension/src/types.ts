@@ -1,8 +1,12 @@
+export type FormatItemIcon = "checkmark.circle.fill" | "checkmark.circle" | "circle" | "crown";
+
+export type FormatItemKind = "info" | "format";
+
 export interface FormatItem {
   title: string;
   subtitle: string;
-  icon: string;
-  type: string;
+  icon: FormatItemIcon;
+  type: FormatItemKind;
   sampleRate?: number;
   bitDepth?: number;
   channels?: number;
