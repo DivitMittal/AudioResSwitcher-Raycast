@@ -80,7 +80,7 @@
         "bit depth"
       ],
       "mode": "menu-bar",
-      "interval": "5s"
+      "interval": "30s"
     }
   ],
   "dependencies": {
