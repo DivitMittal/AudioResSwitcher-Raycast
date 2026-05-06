@@ -1,7 +1,20 @@
 import { useState, useEffect } from "react";
-import { ActionPanel, Action, List, Icon, showToast, Toast } from "@raycast/api";
+import { ActionPanel, Action, List, Icon, LaunchType, launchCommand, showToast, Toast } from "@raycast/api";
 import type { FormatItem } from "./types";
 import { errorMessage, getIcon, isLosslessQuality } from "./utils";
+
+const MENUBAR_COMMAND_NAME = "audio-bitrate-menubar";
+
+async function refreshMenubar(): Promise<void> {
+  try {
+    await launchCommand({ name: MENUBAR_COMMAND_NAME, type: LaunchType.Background });
+  } catch (error) {
+    // Menubar may be disabled by the user, or the command may not be installed
+    // yet during dev. Either way, failing to refresh it shouldn't surface as a
+    // user-visible error from the format change.
+    console.warn("Could not push menubar refresh:", error);
+  }
+}
 
 interface FormatListProps {
   deviceType: "input" | "output";
@@ -53,7 +66,7 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
       toast.style = Toast.Style.Success;
       toast.title = `${directionLabel} Format Updated`;
       toast.message = result.success;
-      await loadFormatsList();
+      await Promise.all([loadFormatsList(), refreshMenubar()]);
     } catch (error) {
       console.error("Error setting format:", error);
       toast.style = Toast.Style.Failure;
