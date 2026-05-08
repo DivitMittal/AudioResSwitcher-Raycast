@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { ActionPanel, Action, List, Icon, LaunchType, launchCommand, showToast, Toast } from "@raycast/api";
+import { useCachedPromise } from "@raycast/utils";
 import type { FormatItem } from "./types";
 import { errorMessage, getIcon, isLosslessQuality } from "./utils";
 
@@ -22,28 +22,25 @@ interface FormatListProps {
   setFormat: (sampleRate: number, bitDepth: number, channels: number) => Promise<{ success: string }>;
 }
 
-export function FormatList({ deviceType, loadFormats, setFormat }: FormatListProps) {
-  const [items, setItems] = useState<FormatItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+const EMPTY_RESULT = { items: [] as FormatItem[] };
 
+export function FormatList({ deviceType, loadFormats, setFormat }: FormatListProps) {
   const directionLabel = deviceType === "input" ? "Input" : "Output";
 
-  const loadFormatsList = async () => {
-    try {
-      setIsLoading(true);
-      const result = await loadFormats();
-      setItems(result.items);
-    } catch (error) {
+  const { data, isLoading, revalidate } = useCachedPromise(loadFormats, [], {
+    initialData: EMPTY_RESULT,
+    keepPreviousData: true,
+    onError: async (error) => {
       console.error(`Error loading ${deviceType} formats:`, error);
       await showToast({
         style: Toast.Style.Failure,
         title: "Error Loading Formats",
         message: errorMessage(error),
       });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
+
+  const items = data?.items ?? [];
 
   const setDeviceFormat = async (item: FormatItem) => {
     if (!item.sampleRate || !item.bitDepth || !item.channels) {
@@ -66,7 +63,8 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
       toast.style = Toast.Style.Success;
       toast.title = `${directionLabel} Format Updated`;
       toast.message = result.success;
-      await Promise.all([loadFormatsList(), refreshMenubar()]);
+      revalidate();
+      await refreshMenubar();
     } catch (error) {
       console.error("Error setting format:", error);
       toast.style = Toast.Style.Failure;
@@ -103,10 +101,6 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
 
   const hasHighestQualityFormat = pickHighestQualityFormat() !== undefined;
 
-  useEffect(() => {
-    loadFormatsList();
-  }, []);
-
   const formatItems = items.filter((item) => item.type === "format");
   const deviceInfo = items.find((item) => item.type === "info");
 
@@ -135,7 +129,7 @@ export function FormatList({ deviceType, loadFormats, setFormat }: FormatListPro
               <Action
                 title="Refresh Formats"
                 icon={Icon.ArrowClockwise}
-                onAction={loadFormatsList}
+                onAction={revalidate}
                 shortcut={{ modifiers: ["cmd"], key: "r" }}
               />
               <Action.CopyToClipboard content={item.title} title="Copy Format Name" />
