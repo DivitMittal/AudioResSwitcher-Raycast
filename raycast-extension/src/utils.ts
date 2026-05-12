@@ -51,10 +51,16 @@ export function errorMessage(error: unknown): string {
     return error;
   }
   try {
-    return JSON.stringify(error);
+    // JSON.stringify(undefined) returns undefined, and structures with bigints
+    // throw — fall through to String(error) in either case.
+    const serialized = JSON.stringify(error);
+    if (typeof serialized === "string") {
+      return serialized;
+    }
   } catch {
-    return String(error);
+    // fall through
   }
+  return String(error);
 }
 
 export function formatBitrate(sampleRate?: number, bitDepth?: number): string {

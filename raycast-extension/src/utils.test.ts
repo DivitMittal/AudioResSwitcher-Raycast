@@ -10,7 +10,7 @@ vi.mock("@raycast/api", () => ({
   },
 }));
 
-import { formatBitrate } from "./utils";
+import { errorMessage, formatBitrate, formatFullFormat } from "./utils";
 
 describe("formatBitrate", () => {
   it("returns N/A when sample rate is missing", () => {
@@ -55,5 +55,79 @@ describe("formatBitrate", () => {
 
   it("formats 2.8224 MHz DSD-style rate in MHz", () => {
     expect(formatBitrate(2822400, 1)).toBe("2.8224M/1");
+  });
+});
+
+describe("formatFullFormat", () => {
+  it("returns Unknown format when sample rate is missing", () => {
+    expect(formatFullFormat(undefined, 24, 2)).toBe("Unknown format");
+  });
+
+  it("returns Unknown format when bit depth is missing", () => {
+    expect(formatFullFormat(48000, undefined, 2)).toBe("Unknown format");
+  });
+
+  it("treats zero sample rate as missing", () => {
+    expect(formatFullFormat(0, 24, 2)).toBe("Unknown format");
+  });
+
+  it("renders the channel suffix when channels is provided", () => {
+    expect(formatFullFormat(96000, 24, 2)).toBe("96kHz 24-bit 2ch");
+  });
+
+  it("renders a mono channel suffix", () => {
+    expect(formatFullFormat(48000, 16, 1)).toBe("48kHz 16-bit 1ch");
+  });
+
+  it("omits the channel suffix when channels is undefined", () => {
+    expect(formatFullFormat(48000, 16, undefined)).toBe("48kHz 16-bit");
+  });
+
+  it("omits the channel suffix when channels is zero (was the `|| 2` bug)", () => {
+    expect(formatFullFormat(48000, 16, 0)).toBe("48kHz 16-bit");
+  });
+
+  it("renders multi-channel surround configs", () => {
+    expect(formatFullFormat(48000, 24, 8)).toBe("48kHz 24-bit 8ch");
+  });
+});
+
+describe("errorMessage", () => {
+  it("returns the message of a real Error", () => {
+    expect(errorMessage(new Error("boom"))).toBe("boom");
+  });
+
+  it("returns the message of an Error subclass", () => {
+    class CustomError extends Error {}
+    expect(errorMessage(new CustomError("custom boom"))).toBe("custom boom");
+  });
+
+  it("returns string inputs as-is", () => {
+    expect(errorMessage("something went wrong")).toBe("something went wrong");
+  });
+
+  it("stringifies plain objects via JSON", () => {
+    expect(errorMessage({ code: 42, reason: "nope" })).toBe('{"code":42,"reason":"nope"}');
+  });
+
+  it("returns String(value) when JSON.stringify fails (circular refs)", () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(errorMessage(circular)).toBe("[object Object]");
+  });
+
+  it("handles undefined without returning undefined", () => {
+    // JSON.stringify(undefined) is undefined, so the function must fall back
+    // to String(undefined) rather than returning a non-string from a
+    // declared `string` return type.
+    expect(errorMessage(undefined)).toBe("undefined");
+  });
+
+  it("handles null", () => {
+    expect(errorMessage(null)).toBe("null");
+  });
+
+  it("handles numbers", () => {
+    expect(errorMessage(404)).toBe("404");
   });
 });
