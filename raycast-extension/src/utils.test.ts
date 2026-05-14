@@ -10,7 +10,18 @@ vi.mock("@raycast/api", () => ({
   },
 }));
 
-import { errorMessage, formatBitrate, formatFullFormat } from "./utils";
+import { errorMessage, formatBitrate, formatFullFormat, getQualityIcon, isLosslessQuality } from "./utils";
+import type { FormatItem } from "./types";
+
+function makeFormatItem(overrides: Partial<FormatItem> = {}): FormatItem {
+  return {
+    title: "test",
+    subtitle: "test",
+    icon: "circle",
+    type: "format",
+    ...overrides,
+  };
+}
 
 describe("formatBitrate", () => {
   it("returns N/A when sample rate is missing", () => {
@@ -129,5 +140,83 @@ describe("errorMessage", () => {
 
   it("handles numbers", () => {
     expect(errorMessage(404)).toBe("404");
+  });
+});
+
+describe("getQualityIcon", () => {
+  it("returns the question-mark icon when sample rate is missing", () => {
+    expect(getQualityIcon(undefined, 24)).toBe("question-mark");
+  });
+
+  it("returns the question-mark icon when bit depth is missing", () => {
+    expect(getQualityIcon(96000, undefined)).toBe("question-mark");
+  });
+
+  it("returns the question-mark icon when both inputs are missing", () => {
+    expect(getQualityIcon()).toBe("question-mark");
+  });
+
+  it("returns the crown icon for lossless rates (>=192k/24)", () => {
+    expect(getQualityIcon(192000, 24)).toBe("crown");
+  });
+
+  it("returns the crown icon for above-lossless rates", () => {
+    expect(getQualityIcon(384000, 32)).toBe("crown");
+  });
+
+  it("does not award the crown when bit depth is below 24, even at lossless sample rates", () => {
+    // 192k/16 satisfies the rate part of the lossless and high-quality
+    // thresholds but fails both bit-depth gates (24), so it falls to circle.
+    expect(getQualityIcon(192000, 16)).toBe("circle");
+  });
+
+  it("returns the star icon for high-quality (96k/24) formats", () => {
+    expect(getQualityIcon(96000, 24)).toBe("star");
+  });
+
+  it("returns the star icon at 96k/24 exactly (boundary)", () => {
+    expect(getQualityIcon(96000, 24)).toBe("star");
+  });
+
+  it("returns the circle icon for CD-quality formats", () => {
+    expect(getQualityIcon(44100, 16)).toBe("circle");
+  });
+
+  it("returns the circle icon for DAT-quality formats", () => {
+    expect(getQualityIcon(48000, 16)).toBe("circle");
+  });
+
+  it("returns the circle icon just below the high-quality threshold", () => {
+    expect(getQualityIcon(88200, 24)).toBe("circle");
+  });
+});
+
+describe("isLosslessQuality", () => {
+  it("returns true at exactly 192k/24", () => {
+    expect(isLosslessQuality(makeFormatItem({ sampleRate: 192000, bitDepth: 24 }))).toBe(true);
+  });
+
+  it("returns true above the threshold on both axes", () => {
+    expect(isLosslessQuality(makeFormatItem({ sampleRate: 384000, bitDepth: 32 }))).toBe(true);
+  });
+
+  it("returns false when sample rate is below threshold", () => {
+    expect(isLosslessQuality(makeFormatItem({ sampleRate: 96000, bitDepth: 24 }))).toBe(false);
+  });
+
+  it("returns false when bit depth is below threshold", () => {
+    expect(isLosslessQuality(makeFormatItem({ sampleRate: 192000, bitDepth: 16 }))).toBe(false);
+  });
+
+  it("returns false when sample rate is undefined", () => {
+    expect(isLosslessQuality(makeFormatItem({ bitDepth: 24 }))).toBe(false);
+  });
+
+  it("returns false when bit depth is undefined", () => {
+    expect(isLosslessQuality(makeFormatItem({ sampleRate: 192000 }))).toBe(false);
+  });
+
+  it("returns false for an info item with no rate or depth", () => {
+    expect(isLosslessQuality(makeFormatItem({ type: "info" }))).toBe(false);
   });
 });
