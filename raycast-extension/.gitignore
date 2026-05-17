@@ -8,6 +8,7 @@ raycast-env*
 
 # Swift build artifacts
 assets/compiled_raycast_swift/
+swift/.build/
 
 # misc
 .DS_Store
