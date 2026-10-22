@@ -21,3 +21,6 @@ result-*
 ## Node.js / pnpm
 node_modules/
 pnpm-lock.yaml
+
+## git worktrees kept inside the project directory
+.worktrees/
