@@ -5,8 +5,8 @@
         <a href='https://github.com/DivitMittal/AudioResSwitcher-Raycast'>
             <img src='https://img.shields.io/github/repo-size/DivitMittal/AudioResSwitcher-Raycast?&style=for-the-badge&logo=github'>
         </a>
-        <a href='https://github.com/DivitMittal/AudioResSwitcher-Raycast/blob/main/LICENSE'>
-            <img src='https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=MIT&logo=unlicense'/>
+        <a href='https://github.com/DivitMittal/AudioResSwitcher-Raycast/blob/master/LICENSE'>
+            <img src='https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=HONCL--1.0&logo=unlicense'/>
         </a>
         <a href='https://raycast.com'>
             <img src='https://img.shields.io/badge/Raycast-Extension-orange?style=for-the-badge&logo=raycast'/>
